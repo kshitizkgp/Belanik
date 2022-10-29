@@ -22,13 +22,18 @@ CREATE TABLE `Post` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 # Create User Table
+DROP TABLE IF EXISTS User;
 CREATE TABLE `User` (
                         `user_id` varchar(255) NOT NULL,
-                        `name` varchar(255) NOT NULL,
-                        `email_id` varchar(255) DEFAULT NULL,
-                        `created_timestamp` datetime NOT NULL,
+                        `display_name` varchar(255) NOT NULL,
+                        `email` varchar(255) DEFAULT NULL,
+                        `created_date` timestamp NOT NULL,
                         `contact_number` varchar(255) DEFAULT NULL,
-                        `profile_picture` varchar(255) DEFAULT NULL,
+                        `profile_picture_url` varchar(255) DEFAULT NULL,
+                        `modified_date` timestamp DEFAULT NULL,
+                        `password` varchar(255) DEFAULT NULL,
+                        `provider` varchar(255) DEFAULT NULL,
+                        `provider_user_id` varchar(255) DEFAULT NULL,
                         `bio` varchar(255) DEFAULT NULL,
                         `birthday` datetime DEFAULT NULL,
                         `gender` varchar(255) DEFAULT NULL,

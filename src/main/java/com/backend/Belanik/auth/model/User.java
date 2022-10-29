@@ -35,7 +35,7 @@ public class User implements Serializable {
 
 	private String email;
 
-	private String imageUrl;
+	private String profilePictureUrl;
 
 	@Column(name = "enabled", columnDefinition = "BIT", length = 1)
 	private boolean enabled;
@@ -43,16 +43,24 @@ public class User implements Serializable {
 	@Column(name = "DISPLAY_NAME")
 	private String displayName;
 
-	@Column(name = "created_date", nullable = false, updatable = false)
+	@Column(name = "created_timestamp", nullable = false, updatable = false)
 	@Temporal(TemporalType.TIMESTAMP)
-	protected Date createdDate;
+	protected Date createdTimestamp;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	protected Date modifiedDate;
+	protected Date modifiedTimestamp;
 
 	private String password;
 
 	private String provider;
+
+	private String contactNumber;
+
+	private String bio;
+
+	private Date dateOfBirth;
+
+	private String gender;
 
 	// bi-directional many-to-many association to Role
 	@JsonIgnore
