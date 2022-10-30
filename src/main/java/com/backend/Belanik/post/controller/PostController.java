@@ -22,7 +22,12 @@ public class PostController {
     }
 
     @PostMapping(value = "/create_post")
-    public ApiPost createPost(@RequestBody() ApiPost apiPost) {
+    public ApiPost createPost(@RequestBody ApiPost apiPost) {
         return this.postService.createPost(apiPost);
+    }
+
+    @PutMapping(value = "/update_post/{id}")
+    public ApiPost updatePost(@PathVariable String id, @RequestBody ApiPost apiPost) {
+        return this.postService.updatePost(id, apiPost);
     }
 }
