@@ -6,10 +6,6 @@ import lombok.Data;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 
-/**
- * @author Chinna
- * @since 26/3/18
- */
 @Data
 @PasswordMatches
 public class SignUpRequest {
