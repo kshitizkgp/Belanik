@@ -53,32 +53,54 @@ public class PostServiceImpl implements PostService{
     public ApiPost createPost(ApiPost apiPost) {
         // TODO(sayoni): Check if the user has write access
         Post post = new Post();
+        createPostUtil(post, apiPost);
         // TODO(sayoni): Set post author id with the user_id from the request
         post.setAuthorId("u1");
+        post.setCreatedTimestamp(post.getLastModifiedTimestamp());
+
+        post = postRepository.save(post);
+        return createApiPostUtil(post, apiPost);
+    }
+
+    @Override
+    public ApiPost updatePost(String id, ApiPost apiPost) {
+        // TODO(sayoni): Check if the user has write access
+        Optional<Post> postOptional = postRepository.findById(id);
+        if (postOptional.isPresent()) {
+            Post post = postOptional.get();
+            createPostUtil(post, apiPost);
+            postRepository.save(post);
+            return createApiPostUtil(post, apiPost);
+        }
+        // TODO(sayoni): Throw exception that object to be updated does not exist
+        return null;
+    }
+
+    private void createPostUtil(Post post, ApiPost apiPost) {
         post.setTitle(apiPost.getTitle());
-        Date now = Calendar.getInstance().getTime();
-        post.setCreatedTimestamp(now);
-        post.setLastModifiedTimestamp(now);
         post.setDescription(apiPost.getDescription());
         post.setCategories(createCategoryJsonFromCategories(apiPost.getCategoryNames(),
                 JSON_CATEGORY_ID_KEY));
         post.setCustomCategories(createCategoryJsonFromCategories(apiPost.getCustomCategoryNames(),
                 JSON_CUSTOM_CATEGORY_NAME_KEY));
         post.setMedia(createMediaJson(apiPost.getVideo(), apiPost.getImageUrls()));
+        Date now = Calendar.getInstance().getTime();
+        post.setLastModifiedTimestamp(now);
+    }
 
-        post = postRepository.save(post);
+    private ApiPost createApiPostUtil(Post post, ApiPost apiPost) {
         return new ApiPost(post.getPostId(),
-                    // TODO(sayoni): Send the author name instead of id
-                    post.getAuthorId(),
-                    post.getTitle(),
-                    apiPost.getCategoryNames(),
-                    apiPost.getCustomCategoryNames(),
-                    apiPost.getVideo(),
-                    apiPost.getImageUrls(),
-                    post.getDescription(),
-                    apiPost.getLikeCount(),
-                    post.getLastModifiedTimestamp(),
-                    false);
+                // TODO(sayoni): Send the author name instead of id
+                post.getAuthorId(),
+                post.getTitle(),
+                apiPost.getCategoryNames(),
+                apiPost.getCustomCategoryNames(),
+                apiPost.getVideo(),
+                apiPost.getImageUrls(),
+                post.getDescription(),
+                apiPost.getLikeCount(),
+                post.getLastModifiedTimestamp(),
+                false);
     }
 
     private List<String> getCategoriesFromCategoryJson(String categoryJson, String jsonKey) {
