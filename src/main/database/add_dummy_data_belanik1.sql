@@ -4,8 +4,9 @@ INSERT INTO `Belanik1`.`Category`
 `name`,
 `parent`)
 VALUES
-("c1","short","length"), ("c2","medium","length"), ("c3","long","length"),
-("c4","straight","type"), ("c5","wavy","type"), ("c6","curly","type");
+("c1","length",""), ("c2","type",""),
+("c3","short","c1"), ("c4","medium","c1"), ("c5","long","c1"),
+("c6","straight","c2"), ("c7","wavy","c2"), ("c8","curly","c2");
 
 # Insert Post 1
 INSERT INTO `Belanik1`.`Post`
