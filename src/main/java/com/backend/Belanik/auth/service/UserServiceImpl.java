@@ -48,8 +48,8 @@ public class UserServiceImpl implements UserService {
 		}
 		User user = buildUser(signUpRequest);
 		Date now = Calendar.getInstance().getTime();
-		user.setCreatedDate(now);
-		user.setModifiedDate(now);
+		user.setCreatedTimestamp(now);
+		user.setModifiedTimestamp(now);
 		user = userRepository.save(user);
 		userRepository.flush();
 		return user;
@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
 		user.setDisplayName(formDTO.getDisplayName());
 		user.setEmail(formDTO.getEmail());
 		user.setPassword(passwordEncoder.encode(formDTO.getPassword()));
-		user.setImageUrl(formDTO.getImageUrl());
+		user.setProfilePictureUrl(formDTO.getImageUrl());
 		final HashSet<Role> roles = new HashSet<Role>();
 		roles.add(roleRepository.findByName(Role.ROLE_USER));
 		user.setRoles(roles);
@@ -102,7 +102,7 @@ public class UserServiceImpl implements UserService {
 
 	private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
 		existingUser.setDisplayName(oAuth2UserInfo.getName());
-		existingUser.setImageUrl(oAuth2UserInfo.getImageUrl());
+		existingUser.setProfilePictureUrl(oAuth2UserInfo.getImageUrl());
 		return userRepository.save(existingUser);
 	}
 

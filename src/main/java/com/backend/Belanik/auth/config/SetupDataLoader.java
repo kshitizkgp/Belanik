@@ -56,8 +56,8 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
 			user.setProvider(SocialProvider.LOCAL.getProviderType());
 			user.setEnabled(true);
 			Date now = Calendar.getInstance().getTime();
-			user.setCreatedDate(now);
-			user.setModifiedDate(now);
+			user.setCreatedTimestamp(now);
+			user.setModifiedTimestamp(now);
 			user = userRepository.save(user);
 		}
 		return user;
