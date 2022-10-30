@@ -3,6 +3,8 @@ package com.backend.Belanik.post.service;
 import com.backend.Belanik.post.dto.ApiPost;
 import com.backend.Belanik.post.model.Post;
 import com.backend.Belanik.post.repo.PostRepository;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.json.JsonParser;
 import org.springframework.boot.json.JsonParserFactory;
@@ -27,7 +29,7 @@ public class PostServiceImpl implements PostService{
     }
 
     @Override
-    public ApiPost findPostById(String id, String loggedInUserId) {
+    public ApiPost getPostById(String id, String loggedInUserId) {
         Optional<Post> postOpt = postRepository.findById(id);
         if (postOpt.isPresent()) {
             Post post = postOpt.get();
@@ -47,6 +49,38 @@ public class PostServiceImpl implements PostService{
         return null;
     }
 
+    @Override
+    public ApiPost createPost(ApiPost apiPost) {
+        // TODO(sayoni): Check if the user has write access
+        Post post = new Post();
+        // TODO(sayoni): Set post author id with the user_id from the request
+        post.setAuthorId("u1");
+        post.setTitle(apiPost.getTitle());
+        Date now = Calendar.getInstance().getTime();
+        post.setCreatedTimestamp(now);
+        post.setLastModifiedTimestamp(now);
+        post.setDescription(apiPost.getDescription());
+        post.setCategories(createCategoryJsonFromCategories(apiPost.getCategoryNames(),
+                JSON_CATEGORY_ID_KEY));
+        post.setCustomCategories(createCategoryJsonFromCategories(apiPost.getCustomCategoryNames(),
+                JSON_CUSTOM_CATEGORY_NAME_KEY));
+        post.setMedia(createMediaJson(apiPost.getVideo(), apiPost.getImageUrls()));
+
+        post = postRepository.save(post);
+        return new ApiPost(post.getPostId(),
+                    // TODO(sayoni): Send the author name instead of id
+                    post.getAuthorId(),
+                    post.getTitle(),
+                    apiPost.getCategoryNames(),
+                    apiPost.getCustomCategoryNames(),
+                    apiPost.getVideo(),
+                    apiPost.getImageUrls(),
+                    post.getDescription(),
+                    apiPost.getLikeCount(),
+                    post.getLastModifiedTimestamp(),
+                    false);
+    }
+
     private List<String> getCategoriesFromCategoryJson(String categoryJson, String jsonKey) {
         Map<String, Object> parsedMap = this.jsonParser.parseMap(categoryJson);
         if (parsedMap.containsKey(jsonKey)) {
@@ -54,6 +88,18 @@ public class PostServiceImpl implements PostService{
             return  (List<String>) parsedMap.get(jsonKey);
         }
         return new ArrayList<>();
+    }
+
+    private String createCategoryJsonFromCategories(List<String> categoryNames, String jsonKey) {
+        JSONObject jsonObject = new JSONObject();
+        if (categoryNames == null) {
+            return jsonObject.toJSONString();
+        }
+        JSONArray jsonArray = new JSONArray();
+        // TODO(sayoni): Convert each category name to category id
+        jsonArray.addAll(categoryNames);
+        jsonObject.put(jsonKey, jsonArray);
+        return jsonObject.toJSONString();
     }
 
     private String getMediaVideoUrl(String mediaJson) {
@@ -70,6 +116,20 @@ public class PostServiceImpl implements PostService{
             return (List<String>) parsedMap.get(JSON_MEDIA_IMAGES_KEY);
         }
         return new ArrayList<>();
+    }
+
+    private String createMediaJson(String videoUrl, List<String> imageUrls) {
+        JSONObject jsonObject = new JSONObject();
+        // Media can contain either 1 video url or multiple image urls.
+        // If both are present, video url will be given priority and stored.
+        if (videoUrl != null) {
+            jsonObject.put(JSON_MEDIA_VIDEO_KEY, videoUrl);
+        } else if (imageUrls != null) {
+            JSONArray imageJsonArray = new JSONArray();
+            imageJsonArray.addAll(imageUrls);
+            jsonObject.put(JSON_MEDIA_IMAGES_KEY, imageJsonArray);
+        }
+        return jsonObject.toJSONString();
     }
 
     private int getLikeCount(String likesJson) {

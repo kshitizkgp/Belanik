@@ -17,6 +17,12 @@ public class PostController {
     @GetMapping(value = "/post/{id}")
     public ApiPost getPost(@PathVariable String id,
                            @RequestParam(name = "user_id",required = false) String loggedInUserId) {
-        return this.postService.findPostById(id, loggedInUserId);
+        // TODO(sayoni): Ideally the loggedInUserId should come from request header?
+        return this.postService.getPostById(id, loggedInUserId);
+    }
+
+    @PostMapping(value = "/create_post")
+    public ApiPost createPost(@RequestBody() ApiPost apiPost) {
+        return this.postService.createPost(apiPost);
     }
 }
