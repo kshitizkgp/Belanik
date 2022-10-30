@@ -2,6 +2,7 @@ package com.backend.Belanik.auth.service;
 
 import com.backend.Belanik.auth.dto.LocalUser;
 import com.backend.Belanik.auth.dto.SignUpRequest;
+import com.backend.Belanik.auth.dto.UpdateUserRequest;
 import com.backend.Belanik.auth.exception.UserAlreadyExistAuthenticationException;
 import com.backend.Belanik.auth.model.User;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
@@ -23,4 +24,6 @@ public interface UserService {
 	Optional<User> findUserById(Long id);
 
 	LocalUser processUserRegistration(String registrationId, Map<String, Object> attributes, OidcIdToken idToken, OidcUserInfo userInfo);
+
+	public User updateExistingUser(LocalUser user, UpdateUserRequest updateUserRequest);
 }

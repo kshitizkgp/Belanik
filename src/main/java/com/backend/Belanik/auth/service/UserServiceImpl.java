@@ -3,6 +3,7 @@ package com.backend.Belanik.auth.service;
 import com.backend.Belanik.auth.dto.LocalUser;
 import com.backend.Belanik.auth.dto.SignUpRequest;
 import com.backend.Belanik.auth.dto.SocialProvider;
+import com.backend.Belanik.auth.dto.UpdateUserRequest;
 import com.backend.Belanik.auth.exception.OAuth2AuthenticationProcessingException;
 import com.backend.Belanik.auth.exception.UserAlreadyExistAuthenticationException;
 import com.backend.Belanik.auth.model.Role;
@@ -20,7 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * @author Chinna
@@ -98,6 +102,30 @@ public class UserServiceImpl implements UserService {
 		}
 
 		return LocalUser.create(user, attributes, idToken, userInfo);
+	}
+
+	@Override
+	@Transactional
+	public User updateExistingUser(LocalUser localUser, UpdateUserRequest updateUserRequest) {
+		User user = findUserByEmail(localUser.getUser().getEmail());
+		if(user == null) {
+			throw new OAuth2AuthenticationProcessingException("User doesn't exit.");
+		}
+		return updateUserModifiableFields(user, updateUserRequest);
+	}
+
+	private User updateUserModifiableFields(User existingUser, UpdateUserRequest updateUserRequest) {
+		existingUser.setBio(updateUserRequest.getBio());
+		existingUser.setContactNumber(updateUserRequest.getContactNumber());
+		try {
+			Date dob = new SimpleDateFormat("dd/MM/yyyy").parse(updateUserRequest.getDateOfBirth());
+			existingUser.setDateOfBirth(dob);
+		} catch (ParseException ex) {
+			// TODO (kshitizkr): Add exception logs.
+			System.out.println("Unable to parse DOB. Skipping this now and updating the rest of the fields.");
+		}
+		existingUser.setGender(updateUserRequest.getGender());
+		return userRepository.save(existingUser);
 	}
 
 	private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
