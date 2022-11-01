@@ -66,8 +66,12 @@ SELECT * FROM `Belanik1`.`Post`;
 INSERT INTO `Belanik1`.`User`
 (`user_id`,
 `name`,
-`email_id`,
+`email`,
 `created_timestamp`,
+`modified_timestamp`,
+`password`,
+`provider`,
+ `provider_user_id`,
 `contact_number`,
 `profile_picture`,
 `bio`,
@@ -75,5 +79,5 @@ INSERT INTO `Belanik1`.`User`
 `gender`,
 `liked_posts`)
 VALUES
-("u1","Sayoni Dutta Roy","sayonidroy@gmail.com", "2022-08-01 00:28:22", "+16505370344", "", "Hi! This is SDR", "1995-11-10", "female", '{"post_id": ["p3"]}'),
-("u2","Kshitiz Kumar","kshitiz.kgp@gmail.com", "2022-08-05 05:28:22", "+16505370384", "", "Hi! This is KKR", "1995-10-08", "male", '{"post_id": ["p1"]}');
+("u1","Sayoni Dutta Roy","sayonidroy@gmail.com", "2022-08-01 00:28:22", "2022-08-01 00:28:22", "12345", "local", "123456", "+16505370344", "", "Hi! This is SDR", "1995-11-10", "female", '{"post_id": ["p3"]}'),
+("u2","Kshitiz Kumar","kshitiz.kgp@gmail.com", "2022-08-05 05:28:22", "2022-08-01 00:28:22", "12345", "local", "123456", "+16505370384", "", "Hi! This is KKR", "1995-10-08", "male", '{"post_id": ["p1"]}');

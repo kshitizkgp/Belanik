@@ -62,6 +62,8 @@ public class User implements Serializable {
 
 	private String gender;
 
+	private String likedPosts;
+
 	// bi-directional many-to-many association to Role
 	@JsonIgnore
 	@ManyToMany
