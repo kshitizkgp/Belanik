@@ -99,7 +99,7 @@ public class PostServiceImpl implements PostService{
         if(postOptional.isPresent()) {
             Post post = postOptional.get();
             int likeCount = getLikeCount(post.getLikes());
-            int diff = request.getLikePost() ? 1 : -1;
+            int diff = request.getLikePost() ? 1 : (request.getUnlikePost() ? -1 : 0);
             User user = localUser.getUser();
             String newLikesJson = updateLikesJson(post.getLikes(), (likeCount + diff), user.getId(), diff);
             String newLikedPostJson = updateLikedPostJson(user, post.getPostId(), diff);
@@ -211,6 +211,7 @@ public class PostServiceImpl implements PostService{
         String timestamp = new Timestamp(System.currentTimeMillis()).toString();
         PostActivity newPostActivity = null;
         try {
+            // TODO(kshitizkr): Fix this and use standard objectmapper.readValue method.
             JsonNode userActivityNode = objectMapper.readTree(likesJson).get(JSON_POST_ACTIVITY_USER_ACTIVITY_KEY);
             if(userActivityNode == null) {
                 if(diff == 1) {
