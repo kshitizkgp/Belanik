@@ -10,8 +10,6 @@ import com.backend.Belanik.post.repo.CategoryRepository;
 import com.backend.Belanik.post.repo.PostRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +20,6 @@ import java.util.*;
 
 @Service
 public class PostServiceImpl implements PostService{
-    private final String JSON_CATEGORY_ID_KEY = "category_id";
-    private final String JSON_CUSTOM_CATEGORY_NAME_KEY = "category_name";
-    private final String JSON_MEDIA_VIDEO_KEY = "video";
-    private final String JSON_MEDIA_IMAGES_KEY = "images";
     private final String JSON_POST_ACTIVITY_USER_ACTIVITY_KEY = "user_activity";
 
     @Autowired
@@ -55,8 +49,8 @@ public class PostServiceImpl implements PostService{
                     post.getDescription(),
                     getLikeCount(post.getLikes()),
                     post.getLastModifiedTimestamp(),
-                    false
                     // TODO(sayoni): getUserLiked(loggedInUserId)
+                    false
                     );
         }
         return null;
@@ -110,14 +104,58 @@ public class PostServiceImpl implements PostService{
 
     private void createPostUtil(Post post, ApiPost apiPost) {
         post.setTitle(apiPost.getTitle());
+        post.setLastModifiedTimestamp(Calendar.getInstance().getTime());
+
+        // Create Categories JSON
+        if (apiPost.getCategoryNames() != null) {
+            List<String> categoryIdsList = new ArrayList<>();
+            for (String categoryName : apiPost.getCategoryNames()) {
+                String categoryId = getCategoryIdFromName(categoryName);
+                if (!categoryId.isEmpty()) {
+                    categoryIdsList.add(categoryId);
+                }
+            }
+            CategoryIds categoryIds = new CategoryIds();
+            categoryIds.setCategoryIds(categoryIdsList);
+            try {
+                String categoryJson = objectMapper.writeValueAsString(categoryIds);
+                post.setCategories(categoryJson);
+            } catch (IOException exception) {
+                System.out.println("Error encountered while creating Categories Json");
+                exception.printStackTrace();
+            }
+        }
+
+        // Create CustomCategories JSON
+        if (apiPost.getCustomCategoryNames() != null) {
+            CustomCategories customCategories = new CustomCategories();
+            customCategories.setCategoryNames(apiPost.getCustomCategoryNames());
+            try {
+                String customCategoriesJson = objectMapper.writeValueAsString(customCategories);
+                post.setCustomCategories(customCategoriesJson);
+            } catch (IOException exception) {
+                System.out.println("Error encountered while creating CustomCategories Json");
+                exception.printStackTrace();
+            }
+        }
+
+        // Create Media JSON
+        Media media = new Media();
+        // Only one of video or imageUrls can be set
+        if (apiPost.getVideo() != null && !apiPost.getVideo().isEmpty()) {
+            media.setVideo(apiPost.getVideo());
+        } else if (apiPost.getImageUrls() != null && !apiPost.getImageUrls().isEmpty()) {
+            media.setImages(apiPost.getImageUrls());
+        }
+        try {
+            String mediaJson = objectMapper.writeValueAsString(media);
+            post.setMedia(mediaJson);
+        } catch (IOException exception) {
+            System.out.println("Error encountered while creating Media Json");
+            exception.printStackTrace();
+        }
+
         post.setDescription(apiPost.getDescription());
-        post.setCategories(createCategoryJsonFromCategories(apiPost.getCategoryNames(),
-                JSON_CATEGORY_ID_KEY));
-        post.setCustomCategories(createCategoryJsonFromCategories(apiPost.getCustomCategoryNames(),
-                JSON_CUSTOM_CATEGORY_NAME_KEY));
-        post.setMedia(createMediaJson(apiPost.getVideo(), apiPost.getImageUrls()));
-        Date now = Calendar.getInstance().getTime();
-        post.setLastModifiedTimestamp(now);
     }
 
     private ApiPost createApiPostUtil(Post post, ApiPost apiPost) {
@@ -165,18 +203,6 @@ public class PostServiceImpl implements PostService{
         return new ArrayList<>();
     }
 
-    private String createCategoryJsonFromCategories(List<String> categoryNames, String jsonKey) {
-        JSONObject jsonObject = new JSONObject();
-        if (categoryNames == null) {
-            return jsonObject.toJSONString();
-        }
-        JSONArray jsonArray = new JSONArray();
-        // TODO(sayoni): Convert each category name to category id
-        jsonArray.addAll(categoryNames);
-        jsonObject.put(jsonKey, jsonArray);
-        return jsonObject.toJSONString();
-    }
-
     private String getMediaVideoUrl(String mediaJson) {
         try {
             if (mediaJson != null && !mediaJson.isEmpty()) {
@@ -201,20 +227,6 @@ public class PostServiceImpl implements PostService{
             exception.printStackTrace();
         }
         return new ArrayList<>();
-    }
-
-    private String createMediaJson(String videoUrl, List<String> imageUrls) {
-        JSONObject jsonObject = new JSONObject();
-        // Media can contain either 1 video url or multiple image urls.
-        // If both are present, video url will be given priority and stored.
-        if (videoUrl != null) {
-            jsonObject.put(JSON_MEDIA_VIDEO_KEY, videoUrl);
-        } else if (imageUrls != null) {
-            JSONArray imageJsonArray = new JSONArray();
-            imageJsonArray.addAll(imageUrls);
-            jsonObject.put(JSON_MEDIA_IMAGES_KEY, imageJsonArray);
-        }
-        return jsonObject.toJSONString();
     }
 
     private long getLikeCount(String likesJson) {
@@ -301,6 +313,14 @@ public class PostServiceImpl implements PostService{
         Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
         if (categoryOptional.isPresent()) {
             return categoryOptional.get().getName();
+        }
+        return "";
+    }
+
+    private String getCategoryIdFromName(String categoryName) {
+        Optional<Category> categoryOptional = categoryRepository.findByName(categoryName);
+        if (categoryOptional.isPresent()) {
+            return categoryOptional.get().getCategoryId();
         }
         return "";
     }
