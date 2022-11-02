@@ -4,13 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.*;
 
-public class Posts {
+// TODO(kshitiz): Add annotation Getter, Setter, NoArgsConstructor
+public class PostIds {
     @JsonProperty("post_id")
     Set<String> postId;
 
-    public Posts(){}
+    public PostIds(){}
 
-    public Posts(Set<String> postId) {
+    public PostIds(Set<String> postId) {
         this.postId = postId;
     }
 

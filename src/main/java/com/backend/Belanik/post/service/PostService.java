@@ -6,9 +6,8 @@ import com.backend.Belanik.post.dto.EngagePostRequest;
 import com.backend.Belanik.post.dto.EngagePostResponse;
 
 public interface PostService {
-    ApiPost getPostById(String id, String loggedInUserId);
+    ApiPost getPostById(String id, LocalUser currentUser);
     ApiPost createPost(ApiPost apiPost);
     ApiPost updatePost(String id, ApiPost apiPost);
-
     EngagePostResponse engagePost(LocalUser currentUser, String post_id, EngagePostRequest request);
 }
