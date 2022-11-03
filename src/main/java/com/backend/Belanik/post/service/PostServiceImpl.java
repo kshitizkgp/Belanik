@@ -79,7 +79,7 @@ public class PostServiceImpl implements PostService{
             postRepository.save(post);
             return createApiPostUtil(post, apiPost);
         }
-        // TODO(sayoni): Throw exception that object to be updated does not exist
+        // TODO(sayoni): Throw error that object to be updated does not exist
         return null;
     }
 
