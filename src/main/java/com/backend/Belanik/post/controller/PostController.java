@@ -21,10 +21,9 @@ public class PostController {
     }
 
     @GetMapping(value = "/post/{id}")
-    public ApiPost getPost(@PathVariable String id,
-                           @RequestParam(name = "user_id",required = false) String loggedInUserId) {
-        // TODO(sayoni): Ideally the loggedInUserId should come from request header?
-        return this.postService.getPostById(id, loggedInUserId);
+    public ApiPost getPost(@PathVariable String id) {
+        // TODO(sayoni): Pass the logged in user
+        return this.postService.getPostById(id, null);
     }
 
     @PostMapping(value = "/create_post")
@@ -39,7 +38,9 @@ public class PostController {
 
     @PutMapping(value = "/engage_post/{id}")
     @PreAuthorize("hasRole('USER')")
-    public EngagePostResponse engagePost(@CurrentUser LocalUser user, @PathVariable String id, @RequestBody EngagePostRequest request) {
+    public EngagePostResponse engagePost(@CurrentUser LocalUser user,
+                                         @PathVariable String id,
+                                         @RequestBody EngagePostRequest request) {
         return this.postService.engagePost(user, id, request);
     }
 }

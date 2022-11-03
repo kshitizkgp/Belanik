@@ -15,7 +15,7 @@ public class ApiPost {
     String video;
     List<String> imageUrls;
     String description;
-    int likeCount;
+    long likeCount;
     Date lastModifiedTimestamp;
     boolean userLiked;
 }
