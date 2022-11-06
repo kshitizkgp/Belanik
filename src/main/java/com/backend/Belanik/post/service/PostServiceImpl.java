@@ -57,16 +57,15 @@ public class PostServiceImpl implements PostService{
     }
 
     @Override
-    public ApiPost createPost(ApiPost apiPost) {
-        // TODO(sayoni): Check if the user has write access
+    public ApiPost createPost(ApiPost apiPost, LocalUser currentUser) {
         Post post = new Post();
         createPostUtil(post, apiPost);
-        // TODO(sayoni): Set post author id with the user_id from the request
-        post.setAuthorId("u1");
+        User user = currentUser.getUser();
+        post.setAuthorId(String.valueOf(user.getId()));
         post.setCreatedTimestamp(post.getLastModifiedTimestamp());
 
         post = postRepository.save(post);
-        return createApiPostUtil(post, apiPost);
+        return createApiPostUtil(post, apiPost, user);
     }
 
     @Override
@@ -77,7 +76,7 @@ public class PostServiceImpl implements PostService{
             Post post = postOptional.get();
             createPostUtil(post, apiPost);
             postRepository.save(post);
-            return createApiPostUtil(post, apiPost);
+            return createApiPostUtil(post, apiPost, null);
         }
         // TODO(sayoni): Throw error that object to be updated does not exist
         return null;
@@ -158,10 +157,9 @@ public class PostServiceImpl implements PostService{
         post.setDescription(apiPost.getDescription());
     }
 
-    private ApiPost createApiPostUtil(Post post, ApiPost apiPost) {
+    private ApiPost createApiPostUtil(Post post, ApiPost apiPost, User user) {
         return new ApiPost(post.getPostId(),
-                // TODO(sayoni): Send the author name instead of id
-                post.getAuthorId(),
+                user.getDisplayName(),
                 post.getTitle(),
                 apiPost.getCategoryNames(),
                 apiPost.getCustomCategoryNames(),

@@ -27,8 +27,9 @@ public class PostController {
     }
 
     @PostMapping(value = "/create_post")
-    public ApiPost createPost(@RequestBody ApiPost apiPost) {
-        return this.postService.createPost(apiPost);
+    @PreAuthorize("hasRole('USER')")
+    public ApiPost createPost(@RequestBody ApiPost apiPost, @CurrentUser LocalUser localUser) {
+        return this.postService.createPost(apiPost, localUser);
     }
 
     @PutMapping(value = "/update_post/{id}")
