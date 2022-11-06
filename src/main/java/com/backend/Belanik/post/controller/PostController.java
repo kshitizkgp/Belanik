@@ -33,8 +33,11 @@ public class PostController {
     }
 
     @PutMapping(value = "/update_post/{id}")
-    public ApiPost updatePost(@PathVariable String id, @RequestBody ApiPost apiPost) {
-        return this.postService.updatePost(id, apiPost);
+    @PreAuthorize("hasRole('USER')")
+    public ApiPost updatePost(@PathVariable String id,
+                              @RequestBody ApiPost apiPost,
+                              @CurrentUser LocalUser localUser) {
+        return this.postService.updatePost(id, apiPost, localUser);
     }
 
     @PutMapping(value = "/engage_post/{id}")

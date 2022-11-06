@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
@@ -35,7 +36,7 @@ public class PostServiceImpl implements PostService{
     private ObjectMapper objectMapper;
 
     @Override
-    public ApiPost getPostById(String id, LocalUser currentUser) {
+    public ApiPost getPostById(String id, LocalUser currentUser) throws EntityNotFoundException {
         Optional<Post> postOpt = postRepository.findById(id);
         if (postOpt.isPresent()) {
             Post post = postOpt.get();
@@ -52,8 +53,9 @@ public class PostServiceImpl implements PostService{
                     // TODO(sayoni): getUserLiked(loggedInUserId)
                     false
                     );
+        } else {
+            throw new EntityNotFoundException("Post not found for the post id: " + id);
         }
-        return null;
     }
 
     @Override
@@ -69,17 +71,20 @@ public class PostServiceImpl implements PostService{
     }
 
     @Override
-    public ApiPost updatePost(String id, ApiPost apiPost) {
-        // TODO(sayoni): Check if the user has write access
+    public ApiPost updatePost(String id, ApiPost apiPost, LocalUser currentUser) {
         Optional<Post> postOptional = postRepository.findById(id);
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
+            if (!currentUser.getUser().getId().toString().equals(post.getAuthorId())) {
+                // The current user is not the author of the post and cannot edit it.
+                throw new IllegalCallerException("The user does not have permission to edit this post");
+            }
             createPostUtil(post, apiPost);
             postRepository.save(post);
-            return createApiPostUtil(post, apiPost, null);
+            return createApiPostUtil(post, apiPost, currentUser.getUser());
+        } else {
+            throw new EntityNotFoundException("Post not found for the post id: " + id);
         }
-        // TODO(sayoni): Throw error that object to be updated does not exist
-        return null;
     }
 
     @Override
