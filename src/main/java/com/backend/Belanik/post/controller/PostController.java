@@ -21,9 +21,8 @@ public class PostController {
     }
 
     @GetMapping(value = "/post/{id}")
-    public ApiPost getPost(@PathVariable String id) {
-        // TODO(sayoni): Pass the logged in user
-        return this.postService.getPostById(id, null);
+    public ApiPost getPost(@PathVariable String id, @CurrentUser LocalUser localUser) {
+        return this.postService.getPostById(id, localUser);
     }
 
     @PostMapping(value = "/create_post")

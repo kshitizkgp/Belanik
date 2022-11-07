@@ -50,8 +50,7 @@ public class PostServiceImpl implements PostService{
                     post.getDescription(),
                     getLikeCount(post.getLikes()),
                     post.getLastModifiedTimestamp(),
-                    // TODO(sayoni): getUserLiked(loggedInUserId)
-                    false
+                    hasUserLikedPost(post, currentUser)
                     );
         } else {
             throw new EntityNotFoundException("Post not found for the post id: " + id);
@@ -104,6 +103,29 @@ public class PostServiceImpl implements PostService{
             return new EngagePostResponse(getLikeCount(newLikesJson));
         }
         return new EngagePostResponse(-1L);
+    }
+
+    private boolean hasUserLikedPost(Post post, LocalUser localUser) {
+        if (localUser != null) {
+            User user = localUser.getUser();
+            try {
+                String likesJson = post.getLikes();
+                if (likesJson != null && !likesJson.isEmpty()) {
+                    PostActivity postActivity = objectMapper.readValue(likesJson, PostActivity.class);
+                    List<UserActivity> userActivities = postActivity.getUserActivity();
+                    for (UserActivity userActivity: userActivities) {
+                        if (userActivity.getUserId().equals(user.getId().toString())) {
+                            // User has liked the post
+                            return true;
+                        }
+                    }
+                }
+            } catch (IOException exception) {
+                System.out.println("Error encountered while parsing Likes Json");
+                exception.printStackTrace();
+            }
+        }
+        return false;
     }
 
     private void createPostUtil(Post post, ApiPost apiPost) {
