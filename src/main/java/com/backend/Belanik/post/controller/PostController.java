@@ -2,9 +2,7 @@ package com.backend.Belanik.post.controller;
 
 import com.backend.Belanik.auth.config.CurrentUser;
 import com.backend.Belanik.auth.dto.LocalUser;
-import com.backend.Belanik.post.dto.ApiPost;
-import com.backend.Belanik.post.dto.EngagePostRequest;
-import com.backend.Belanik.post.dto.EngagePostResponse;
+import com.backend.Belanik.post.dto.*;
 import com.backend.Belanik.post.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +21,12 @@ public class PostController {
     @GetMapping(value = "/post/{id}")
     public ApiPost getPost(@PathVariable String id, @CurrentUser LocalUser localUser) {
         return this.postService.getPostById(id, localUser);
+    }
+
+    @GetMapping(value = "/posts")
+    public ListPostResponse listPosts(@RequestBody ListPostRequest listPostRequest,
+                                      @CurrentUser LocalUser localUser) {
+        return this.postService.listPosts(listPostRequest, localUser);
     }
 
     @PostMapping(value = "/create_post")

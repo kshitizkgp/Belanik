@@ -22,6 +22,7 @@ import java.util.*;
 @Service
 public class PostServiceImpl implements PostService{
     private final String JSON_POST_ACTIVITY_USER_ACTIVITY_KEY = "user_activity";
+    private final int DEFAULT_LIST_PAGE_SIZE = 50;
 
     @Autowired
     private PostRepository postRepository;
@@ -40,20 +41,19 @@ public class PostServiceImpl implements PostService{
         Optional<Post> postOpt = postRepository.findById(id);
         if (postOpt.isPresent()) {
             Post post = postOpt.get();
-            return new ApiPost(post.getPostId(),
-                    getUserNameFromId(Long.parseLong(post.getAuthorId())),
-                    post.getTitle(),
-                    getCategoryNamesFromCategoryJson(post.getCategories()),
-                    getCustomCategoriesFromCategoryJson(post.getCustomCategories()),
-                    getMediaVideoUrl(post.getMedia()),
-                    getMediaImageUrls(post.getMedia()),
-                    post.getDescription(),
-                    getLikeCount(post.getLikes()),
-                    post.getLastModifiedTimestamp(),
-                    hasUserLikedPost(post, currentUser)
-                    );
+            return createApiPostUtil(post, currentUser);
         } else {
             throw new EntityNotFoundException("Post not found for the post id: " + id);
+        }
+    }
+
+    @Override
+    public ListPostResponse listPosts(ListPostRequest listPostRequest, LocalUser currentUser) {
+        switch(listPostRequest.getType()) {
+            case SPOTLIGHT:
+                return getSpotlightPosts(currentUser);
+            default:
+                throw new IllegalArgumentException("Invalid post type");
         }
     }
 
@@ -198,14 +198,31 @@ public class PostServiceImpl implements PostService{
                 false);
     }
 
+    private ApiPost createApiPostUtil(Post post, LocalUser currentUser) {
+        return new ApiPost(post.getPostId(),
+                getUserNameFromId(Long.parseLong(post.getAuthorId())),
+                post.getTitle(),
+                getCategoryNamesFromCategoryJson(post.getCategories()),
+                getCustomCategoriesFromCategoryJson(post.getCustomCategories()),
+                getMediaVideoUrl(post.getMedia()),
+                getMediaImageUrls(post.getMedia()),
+                post.getDescription(),
+                getLikeCount(post.getLikes()),
+                post.getLastModifiedTimestamp(),
+                hasUserLikedPost(post, currentUser)
+        );
+    }
+
     private List<String> getCategoryNamesFromCategoryJson(String categoryJson) {
         List<String> categoryNames = new ArrayList<>();
         try {
             if (categoryJson != null && !categoryJson.isEmpty()) {
                 CategoryIds categoryIds = objectMapper.readValue(categoryJson, CategoryIds.class);
                 List<String> categoryIdsList = categoryIds.getCategoryIds();
-                for (String categoryId: categoryIdsList) {
-                    categoryNames.add(getCategoryNameFromId(categoryId));
+                if (categoryIdsList != null) {
+                    for (String categoryId : categoryIdsList) {
+                        categoryNames.add(getCategoryNameFromId(categoryId));
+                    }
                 }
             }
         } catch (IOException exception) {
@@ -348,5 +365,23 @@ public class PostServiceImpl implements PostService{
             return categoryOptional.get().getCategoryId();
         }
         return "";
+    }
+
+    private ListPostResponse getSpotlightPosts(LocalUser currentUser) {
+        // TODO(sayoni): Add pagination logic
+        List<Post> allPosts = postRepository.findAll();
+        // Return the top posts with the maximum number of likes
+        allPosts.sort((p1, p2) -> {
+            long likeCount1 = getLikeCount(p1.getLikes());
+            long likeCount2 = getLikeCount(p2.getLikes());
+            return (int) (likeCount2 - likeCount1);
+        });
+
+        List<ApiPost> apiPosts = new ArrayList<>();
+        for (int i = 0; i < allPosts.size() && i < DEFAULT_LIST_PAGE_SIZE; i++) {
+            apiPosts.add(createApiPostUtil(allPosts.get(i), currentUser));
+        }
+
+        return new ListPostResponse(apiPosts);
     }
 }
