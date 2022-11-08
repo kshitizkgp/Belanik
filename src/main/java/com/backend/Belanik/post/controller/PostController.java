@@ -23,12 +23,13 @@ public class PostController {
         return this.postService.getPostById(id, localUser);
     }
 
-    @GetMapping(value = "/posts")
+    @PostMapping(value = "/posts")
     public ListPostResponse listPosts(@RequestBody ListPostRequest listPostRequest,
                                       @CurrentUser LocalUser localUser) {
         return this.postService.listPosts(listPostRequest, localUser);
     }
 
+    // Custom Methods should use POST. Reference: https://cloud.google.com/apis/design/custom_methods
     @PostMapping(value = "/create_post")
     @PreAuthorize("hasRole('USER')")
     public ApiPost createPost(@RequestBody ApiPost apiPost, @CurrentUser LocalUser localUser) {
