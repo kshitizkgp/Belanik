@@ -52,6 +52,7 @@ public class PostServiceImpl implements PostService{
         return switch (listPostRequest.getType()) {
             case SPOTLIGHT -> getSpotlightPosts(currentUser);
             case CREATED -> getCreatedPosts(currentUser);
+            case SEARCH_BY_CATEGORY -> getSearchByCategoryPosts(currentUser, listPostRequest.getCategoryNames());
         };
     }
 
@@ -367,15 +368,12 @@ public class PostServiceImpl implements PostService{
 
     private ListPostResponse getSpotlightPosts(LocalUser currentUser) {
         // TODO(sayoni): Add pagination logic
-        List<Post> allPosts = postRepository.findAll();
+        List<Post> allPosts = postRepository.findAllByOrderByLastModifiedTimestampDesc();
         // Return the top posts with the maximum number of likes.
         // If like count is same, return the one with the latest timestamp
         allPosts.sort((p1, p2) -> {
             long likeCount1 = getLikeCount(p1.getLikes());
             long likeCount2 = getLikeCount(p2.getLikes());
-            if (likeCount1 == likeCount2) {
-                return (int) (p2.getLastModifiedTimestamp().getTime() - p1.getLastModifiedTimestamp().getTime());
-            }
             return (int) (likeCount2 - likeCount1);
         });
 
@@ -393,6 +391,29 @@ public class PostServiceImpl implements PostService{
             return getListPostResponse(currentUser, userPosts);
         }
         return null;
+    }
+
+    private ListPostResponse getSearchByCategoryPosts(LocalUser currentUser, String[] categoryNames) {
+        List<Post> categoryPosts = new ArrayList<>();
+        List<String> filterCategoryIds = new ArrayList<>();
+        for (String categoryName : categoryNames) {
+            filterCategoryIds.add(getCategoryIdFromName(categoryName));
+        }
+        List<Post> allPosts = postRepository.findAllByOrderByLastModifiedTimestampDesc();
+        try {
+            for (Post post: allPosts) {
+                String categoryJson = post.getCategories();
+                CategoryIds categoryIds = objectMapper.readValue(categoryJson, CategoryIds.class);
+                List<String> postCategoryIds = categoryIds.getCategoryIds();
+                if (!Collections.disjoint(filterCategoryIds, postCategoryIds)) {
+                   categoryPosts.add(post);
+                }
+            }
+        } catch(IOException exception) {
+            System.out.println("Error encountered while parsing Categories Json");
+            exception.printStackTrace();
+        }
+        return getListPostResponse(currentUser, categoryPosts);
     }
 
     private ListPostResponse getListPostResponse(LocalUser currentUser, List<Post> posts) {

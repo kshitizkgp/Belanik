@@ -6,7 +6,9 @@ import lombok.Data;
 public class ListPostRequest {
     public enum PostType {
         SPOTLIGHT,
-        CREATED
+        CREATED,
+        SEARCH_BY_CATEGORY,
     }
     PostType type;
+    String[] categoryNames;
 }

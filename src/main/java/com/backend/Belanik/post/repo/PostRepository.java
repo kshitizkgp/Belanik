@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, String> {
     List<Post> findByAuthorId(String authorId);
+    List<Post> findAllByOrderByLastModifiedTimestampDesc();
 }
