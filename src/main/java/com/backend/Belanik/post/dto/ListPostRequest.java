@@ -6,6 +6,7 @@ import lombok.Data;
 public class ListPostRequest {
     public enum PostType {
         SPOTLIGHT,
+        CREATED
     }
     PostType type;
 }

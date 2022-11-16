@@ -49,12 +49,10 @@ public class PostServiceImpl implements PostService{
 
     @Override
     public ListPostResponse listPosts(ListPostRequest listPostRequest, LocalUser currentUser) {
-        switch(listPostRequest.getType()) {
-            case SPOTLIGHT:
-                return getSpotlightPosts(currentUser);
-            default:
-                throw new IllegalArgumentException("Invalid post type");
-        }
+        return switch (listPostRequest.getType()) {
+            case SPOTLIGHT -> getSpotlightPosts(currentUser);
+            case CREATED -> getCreatedPosts(currentUser);
+        };
     }
 
     @Override
@@ -370,18 +368,38 @@ public class PostServiceImpl implements PostService{
     private ListPostResponse getSpotlightPosts(LocalUser currentUser) {
         // TODO(sayoni): Add pagination logic
         List<Post> allPosts = postRepository.findAll();
-        // Return the top posts with the maximum number of likes
+        // Return the top posts with the maximum number of likes.
+        // If like count is same, return the one with the latest timestamp
         allPosts.sort((p1, p2) -> {
             long likeCount1 = getLikeCount(p1.getLikes());
             long likeCount2 = getLikeCount(p2.getLikes());
+            if (likeCount1 == likeCount2) {
+                return (int) (p2.getLastModifiedTimestamp().getTime() - p1.getLastModifiedTimestamp().getTime());
+            }
             return (int) (likeCount2 - likeCount1);
         });
 
-        List<ApiPost> apiPosts = new ArrayList<>();
-        for (int i = 0; i < allPosts.size() && i < DEFAULT_LIST_PAGE_SIZE; i++) {
-            apiPosts.add(createApiPostUtil(allPosts.get(i), currentUser));
-        }
+        return getListPostResponse(currentUser, allPosts);
+    }
 
+    private ListPostResponse getCreatedPosts(LocalUser currentUser) {
+        // TODO(sayoni): Add pagination logic
+        if (currentUser != null) {
+            User user = currentUser.getUser();
+            List<Post> userPosts = postRepository.findByAuthorId(String.valueOf(user.getId()));
+            // The posts should be sorted in descending order by last_modified_timestamp
+            userPosts.sort((p1, p2) ->
+                    (int) (p2.getLastModifiedTimestamp().getTime() - p1.getLastModifiedTimestamp().getTime()));
+            return getListPostResponse(currentUser, userPosts);
+        }
+        return null;
+    }
+
+    private ListPostResponse getListPostResponse(LocalUser currentUser, List<Post> posts) {
+        List<ApiPost> apiPosts = new ArrayList<>();
+        for (int i = 0; i < posts.size() && i < DEFAULT_LIST_PAGE_SIZE; i++) {
+            apiPosts.add(createApiPostUtil(posts.get(i), currentUser));
+        }
         return new ListPostResponse(apiPosts);
     }
 }
