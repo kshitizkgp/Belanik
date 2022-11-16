@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
@@ -21,6 +22,7 @@ import java.util.*;
 @Service
 public class PostServiceImpl implements PostService{
     private final String JSON_POST_ACTIVITY_USER_ACTIVITY_KEY = "user_activity";
+    private final int DEFAULT_LIST_PAGE_SIZE = 50;
 
     @Autowired
     private PostRepository postRepository;
@@ -35,52 +37,52 @@ public class PostServiceImpl implements PostService{
     private ObjectMapper objectMapper;
 
     @Override
-    public ApiPost getPostById(String id, LocalUser currentUser) {
+    public ApiPost getPostById(String id, LocalUser currentUser) throws EntityNotFoundException {
         Optional<Post> postOpt = postRepository.findById(id);
         if (postOpt.isPresent()) {
             Post post = postOpt.get();
-            return new ApiPost(post.getPostId(),
-                    getUserNameFromId(Long.parseLong(post.getAuthorId())),
-                    post.getTitle(),
-                    getCategoryNamesFromCategoryJson(post.getCategories()),
-                    getCustomCategoriesFromCategoryJson(post.getCustomCategories()),
-                    getMediaVideoUrl(post.getMedia()),
-                    getMediaImageUrls(post.getMedia()),
-                    post.getDescription(),
-                    getLikeCount(post.getLikes()),
-                    post.getLastModifiedTimestamp(),
-                    // TODO(sayoni): getUserLiked(loggedInUserId)
-                    false
-                    );
+            return createApiPostUtil(post, currentUser);
+        } else {
+            throw new EntityNotFoundException("Post not found for the post id: " + id);
         }
-        return null;
     }
 
     @Override
-    public ApiPost createPost(ApiPost apiPost) {
-        // TODO(sayoni): Check if the user has write access
+    public ListPostResponse listPosts(ListPostRequest listPostRequest, LocalUser currentUser) {
+        return switch (listPostRequest.getType()) {
+            case SPOTLIGHT -> getSpotlightPosts(currentUser);
+            case CREATED -> getCreatedPosts(currentUser);
+            case SEARCH_BY_CATEGORY -> getSearchByCategoryPosts(currentUser, listPostRequest.getCategoryNames());
+        };
+    }
+
+    @Override
+    public ApiPost createPost(ApiPost apiPost, LocalUser currentUser) {
         Post post = new Post();
         createPostUtil(post, apiPost);
-        // TODO(sayoni): Set post author id with the user_id from the request
-        post.setAuthorId("u1");
+        User user = currentUser.getUser();
+        post.setAuthorId(String.valueOf(user.getId()));
         post.setCreatedTimestamp(post.getLastModifiedTimestamp());
 
         post = postRepository.save(post);
-        return createApiPostUtil(post, apiPost);
+        return createApiPostUtil(post, apiPost, user);
     }
 
     @Override
-    public ApiPost updatePost(String id, ApiPost apiPost) {
-        // TODO(sayoni): Check if the user has write access
+    public ApiPost updatePost(String id, ApiPost apiPost, LocalUser currentUser) {
         Optional<Post> postOptional = postRepository.findById(id);
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
+            if (!currentUser.getUser().getId().toString().equals(post.getAuthorId())) {
+                // The current user is not the author of the post and cannot edit it.
+                throw new IllegalCallerException("The user does not have permission to edit this post");
+            }
             createPostUtil(post, apiPost);
             postRepository.save(post);
-            return createApiPostUtil(post, apiPost);
+            return createApiPostUtil(post, apiPost, currentUser.getUser());
+        } else {
+            throw new EntityNotFoundException("Post not found for the post id: " + id);
         }
-        // TODO(sayoni): Throw error that object to be updated does not exist
-        return null;
     }
 
     @Override
@@ -100,6 +102,29 @@ public class PostServiceImpl implements PostService{
             return new EngagePostResponse(getLikeCount(newLikesJson));
         }
         return new EngagePostResponse(-1L);
+    }
+
+    private boolean hasUserLikedPost(Post post, LocalUser localUser) {
+        if (localUser != null) {
+            User user = localUser.getUser();
+            try {
+                String likesJson = post.getLikes();
+                if (likesJson != null && !likesJson.isEmpty()) {
+                    PostActivity postActivity = objectMapper.readValue(likesJson, PostActivity.class);
+                    List<UserActivity> userActivities = postActivity.getUserActivity();
+                    for (UserActivity userActivity: userActivities) {
+                        if (userActivity.getUserId().equals(user.getId().toString())) {
+                            // User has liked the post
+                            return true;
+                        }
+                    }
+                }
+            } catch (IOException exception) {
+                System.out.println("Error encountered while parsing Likes Json");
+                exception.printStackTrace();
+            }
+        }
+        return false;
     }
 
     private void createPostUtil(Post post, ApiPost apiPost) {
@@ -158,10 +183,9 @@ public class PostServiceImpl implements PostService{
         post.setDescription(apiPost.getDescription());
     }
 
-    private ApiPost createApiPostUtil(Post post, ApiPost apiPost) {
+    private ApiPost createApiPostUtil(Post post, ApiPost apiPost, User user) {
         return new ApiPost(post.getPostId(),
-                // TODO(sayoni): Send the author name instead of id
-                post.getAuthorId(),
+                user.getDisplayName(),
                 post.getTitle(),
                 apiPost.getCategoryNames(),
                 apiPost.getCustomCategoryNames(),
@@ -173,14 +197,31 @@ public class PostServiceImpl implements PostService{
                 false);
     }
 
+    private ApiPost createApiPostUtil(Post post, LocalUser currentUser) {
+        return new ApiPost(post.getPostId(),
+                getUserNameFromId(Long.parseLong(post.getAuthorId())),
+                post.getTitle(),
+                getCategoryNamesFromCategoryJson(post.getCategories()),
+                getCustomCategoriesFromCategoryJson(post.getCustomCategories()),
+                getMediaVideoUrl(post.getMedia()),
+                getMediaImageUrls(post.getMedia()),
+                post.getDescription(),
+                getLikeCount(post.getLikes()),
+                post.getLastModifiedTimestamp(),
+                hasUserLikedPost(post, currentUser)
+        );
+    }
+
     private List<String> getCategoryNamesFromCategoryJson(String categoryJson) {
         List<String> categoryNames = new ArrayList<>();
         try {
             if (categoryJson != null && !categoryJson.isEmpty()) {
                 CategoryIds categoryIds = objectMapper.readValue(categoryJson, CategoryIds.class);
                 List<String> categoryIdsList = categoryIds.getCategoryIds();
-                for (String categoryId: categoryIdsList) {
-                    categoryNames.add(getCategoryNameFromId(categoryId));
+                if (categoryIdsList != null) {
+                    for (String categoryId : categoryIdsList) {
+                        categoryNames.add(getCategoryNameFromId(categoryId));
+                    }
                 }
             }
         } catch (IOException exception) {
@@ -323,5 +364,63 @@ public class PostServiceImpl implements PostService{
             return categoryOptional.get().getCategoryId();
         }
         return "";
+    }
+
+    private ListPostResponse getSpotlightPosts(LocalUser currentUser) {
+        // TODO(sayoni): Add pagination logic
+        List<Post> allPosts = postRepository.findAllByOrderByLastModifiedTimestampDesc();
+        // Return the top posts with the maximum number of likes.
+        // If like count is same, return the one with the latest timestamp
+        allPosts.sort((p1, p2) -> {
+            long likeCount1 = getLikeCount(p1.getLikes());
+            long likeCount2 = getLikeCount(p2.getLikes());
+            return (int) (likeCount2 - likeCount1);
+        });
+
+        return getListPostResponse(currentUser, allPosts);
+    }
+
+    private ListPostResponse getCreatedPosts(LocalUser currentUser) {
+        // TODO(sayoni): Add pagination logic
+        if (currentUser != null) {
+            User user = currentUser.getUser();
+            List<Post> userPosts = postRepository.findByAuthorId(String.valueOf(user.getId()));
+            // The posts should be sorted in descending order by last_modified_timestamp
+            userPosts.sort((p1, p2) ->
+                    (int) (p2.getLastModifiedTimestamp().getTime() - p1.getLastModifiedTimestamp().getTime()));
+            return getListPostResponse(currentUser, userPosts);
+        }
+        return null;
+    }
+
+    private ListPostResponse getSearchByCategoryPosts(LocalUser currentUser, String[] categoryNames) {
+        List<Post> categoryPosts = new ArrayList<>();
+        List<String> filterCategoryIds = new ArrayList<>();
+        for (String categoryName : categoryNames) {
+            filterCategoryIds.add(getCategoryIdFromName(categoryName));
+        }
+        List<Post> allPosts = postRepository.findAllByOrderByLastModifiedTimestampDesc();
+        try {
+            for (Post post: allPosts) {
+                String categoryJson = post.getCategories();
+                CategoryIds categoryIds = objectMapper.readValue(categoryJson, CategoryIds.class);
+                List<String> postCategoryIds = categoryIds.getCategoryIds();
+                if (!Collections.disjoint(filterCategoryIds, postCategoryIds)) {
+                   categoryPosts.add(post);
+                }
+            }
+        } catch(IOException exception) {
+            System.out.println("Error encountered while parsing Categories Json");
+            exception.printStackTrace();
+        }
+        return getListPostResponse(currentUser, categoryPosts);
+    }
+
+    private ListPostResponse getListPostResponse(LocalUser currentUser, List<Post> posts) {
+        List<ApiPost> apiPosts = new ArrayList<>();
+        for (int i = 0; i < posts.size() && i < DEFAULT_LIST_PAGE_SIZE; i++) {
+            apiPosts.add(createApiPostUtil(posts.get(i), currentUser));
+        }
+        return new ListPostResponse(apiPosts);
     }
 }

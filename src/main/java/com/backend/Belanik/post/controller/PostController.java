@@ -2,9 +2,7 @@ package com.backend.Belanik.post.controller;
 
 import com.backend.Belanik.auth.config.CurrentUser;
 import com.backend.Belanik.auth.dto.LocalUser;
-import com.backend.Belanik.post.dto.ApiPost;
-import com.backend.Belanik.post.dto.EngagePostRequest;
-import com.backend.Belanik.post.dto.EngagePostResponse;
+import com.backend.Belanik.post.dto.*;
 import com.backend.Belanik.post.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,19 +19,29 @@ public class PostController {
     }
 
     @GetMapping(value = "/post/{id}")
-    public ApiPost getPost(@PathVariable String id) {
-        // TODO(sayoni): Pass the logged in user
-        return this.postService.getPostById(id, null);
+    public ApiPost getPost(@PathVariable String id, @CurrentUser LocalUser localUser) {
+        return this.postService.getPostById(id, localUser);
     }
 
+    @PostMapping(value = "/posts")
+    public ListPostResponse listPosts(@RequestBody ListPostRequest listPostRequest,
+                                      @CurrentUser LocalUser localUser) {
+        return this.postService.listPosts(listPostRequest, localUser);
+    }
+
+    // Custom Methods should use POST. Reference: https://cloud.google.com/apis/design/custom_methods
     @PostMapping(value = "/create_post")
-    public ApiPost createPost(@RequestBody ApiPost apiPost) {
-        return this.postService.createPost(apiPost);
+    @PreAuthorize("hasRole('USER')")
+    public ApiPost createPost(@RequestBody ApiPost apiPost, @CurrentUser LocalUser localUser) {
+        return this.postService.createPost(apiPost, localUser);
     }
 
     @PutMapping(value = "/update_post/{id}")
-    public ApiPost updatePost(@PathVariable String id, @RequestBody ApiPost apiPost) {
-        return this.postService.updatePost(id, apiPost);
+    @PreAuthorize("hasRole('USER')")
+    public ApiPost updatePost(@PathVariable String id,
+                              @RequestBody ApiPost apiPost,
+                              @CurrentUser LocalUser localUser) {
+        return this.postService.updatePost(id, apiPost, localUser);
     }
 
     @PutMapping(value = "/engage_post/{id}")
